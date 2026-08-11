@@ -1,0 +1,7 @@
+project_id = "ddpkjbfiugtphayosldl"
+
+[functions.parse-rss]
+verify_jwt = false
+
+[functions.ai-insights]
+verify_jwt = true

@@ -1,0 +1,13 @@
+{
+  "name": "Hertz — Intelligent Global Radio",
+  "short_name": "Hertz",
+  "description": "An intelligent global audio system. 110+ verified stations, precision-engineered.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#B8924A",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" }
+  ]
+}
