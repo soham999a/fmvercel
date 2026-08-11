@@ -71,7 +71,7 @@ export function SearchBar({ className }: { className?: string }) {
           onFocus={() => setIsOpen(true)}
           placeholder="Search stations, genres, countries…"
           aria-label="Search"
-          className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
         />
         {query && (
           <button

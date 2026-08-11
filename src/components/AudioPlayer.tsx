@@ -58,7 +58,7 @@ export function AudioPlayer() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-md px-4 md:bottom-4 md:left-24 md:right-4 md:max-w-none md:mx-0 md:pl-0"
+            className="fixed inset-x-0 bottom-[calc(4.5rem_+_env(safe-area-inset-bottom))] z-40 mx-auto max-w-md px-4 md:bottom-4 md:left-24 md:right-4 md:max-w-none md:mx-0 md:pl-0"
           >
             <div className="flex items-center gap-3 rounded-xl border border-border bg-card/95 px-3 py-2 backdrop-blur">
               <button
@@ -93,7 +93,7 @@ export function AudioPlayer() {
                 type="button"
                 onClick={stop}
                 aria-label="Stop"
-                className="press flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+                className="press flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" strokeWidth={1.8} />
               </button>
@@ -117,7 +117,7 @@ export function AudioPlayer() {
               animate={{ y: 0 }}
               exit={{ y: 40 }}
               transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-              className={cn('mx-auto flex min-h-full flex-col px-6 pb-10 pt-6', carMode ? 'max-w-full' : 'max-w-3xl')}
+              className={cn('mx-auto flex min-h-full flex-col px-6 pb-[calc(2.5rem_+_env(safe-area-inset-bottom))] pt-6', carMode ? 'max-w-full' : 'max-w-3xl')}
             >
               {/* Top bar */}
               <div className="flex items-center justify-between">
@@ -216,7 +216,7 @@ export function AudioPlayer() {
                 </div>
 
                 {/* Sleep timer */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Moon className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
                   <span className="type-mono-label text-muted-foreground">Sleep</span>
                   <div className="flex gap-1">

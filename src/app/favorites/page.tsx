@@ -32,7 +32,7 @@ export default function Favorites() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-            className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2"
+            className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
           >
             {favorites.map((s, i) => (
               <StationCard key={s.id} station={s} index={i} />

@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 export function Header() {
   const { user, signOut, loading } = useAuth();
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 md:pl-24 md:pr-8">
         <Link href="/" className="press flex items-center gap-3">
           <img
@@ -23,7 +23,7 @@ export function Header() {
           />
           <div className="flex flex-col leading-none">
             <span className="text-[15px] font-semibold tracking-tight text-foreground">Hertz</span>
-            <span className="type-mono-label mt-0.5 text-primary/80" style={{ fontSize: 9 }}>
+            <span className="type-mono-label mt-0.5 hidden text-primary/80 min-[400px]:block" style={{ fontSize: 9 }}>
               Your Home of Radio
             </span>
           </div>

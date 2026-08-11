@@ -99,14 +99,14 @@ export function StationCard({ station, index = 0 }: StationCardProps) {
       <div className="my-3 h-px bg-border/70" />
 
       {/* Metrics row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
           <Metric label="Genre" value={primaryTag || '—'} />
           <Metric label="Kbps"  value={bitrate ? String(bitrate) : '—'} tabular />
           <Metric label="Votes" value={station.votes ? formatNumber(station.votes) : '—'} tabular />
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1">
           <IconBtn
             label="Share"
             onClick={handleShare}
@@ -128,7 +128,7 @@ export function StationCard({ station, index = 0 }: StationCardProps) {
             onClick={handlePlayClick}
             aria-label={isCurrentlyPlaying ? 'Pause' : 'Play'}
             className={cn(
-              'press ml-1 flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-micro ease-matrix',
+              'press ml-1 flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-micro ease-matrix',
               isCurrentStation
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-foreground text-background hover:bg-primary hover:text-primary-foreground'
@@ -150,9 +150,12 @@ export function StationCard({ station, index = 0 }: StationCardProps) {
 
 function Metric({ label, value, tabular }: { label: string; value: string; tabular?: boolean }) {
   return (
-    <div className="flex flex-col leading-none">
+    <div className="flex min-w-0 flex-col leading-none">
       <span className="type-mono-label text-muted-foreground">{label}</span>
-      <span className={cn('mt-1 text-[11px] font-medium text-foreground/90', tabular && 'tabular')}>
+      <span
+        title={value}
+        className={cn('mt-1 block max-w-[7.5rem] truncate text-[11px] font-medium text-foreground/90', tabular && 'tabular')}
+      >
         {value}
       </span>
     </div>
@@ -173,7 +176,7 @@ function IconBtn({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        'press flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors duration-micro ease-matrix hover:bg-secondary hover:text-foreground',
+        'press flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors duration-micro ease-matrix hover:bg-secondary hover:text-foreground',
         active && 'text-primary'
       )}
     >

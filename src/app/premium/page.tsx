@@ -30,9 +30,11 @@ export default function Premium() {
 
       <main className="mx-auto max-w-4xl px-4 pt-6 md:pl-24 md:pr-8">
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl border border-border bg-card">
-          <div className="matrix-grid absolute inset-0" />
-          <MatrixWave />
+        <section className="relative rounded-3xl border border-border bg-card">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+            <div className="matrix-grid absolute inset-0" />
+            <MatrixWave />
+          </div>
 
           <div className="relative px-6 py-12 md:px-10 md:py-16 text-center">
             <div className="inline-flex items-center gap-2">

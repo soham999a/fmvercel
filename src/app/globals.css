@@ -114,12 +114,25 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Sora', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'ss01', 'cv11';
+  }
+
+  /* Kill 300ms double-tap zoom delay + accidental tap-highlight on interactive elements */
+  a,
+  button,
+  [role='button'],
+  input,
+  label,
+  select,
+  textarea {
+    touch-action: manipulation;
   }
 
   h1, h2, h3, h4, h5, h6 {

@@ -27,20 +27,24 @@ export function FloatingNav() {
 
   return (
     <>
-      {/* Mobile bottom bar — edge to edge, fits any phone width */}
+      {/* Mobile floating pill — centered, safe-area aware */}
       <nav
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-40 md:hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{
+          paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
+          paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+          paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+        }}
       >
-        <div className="flex items-stretch justify-between gap-0.5 border-t border-border bg-card/95 px-1 pb-1 pt-1.5 shadow-[0_-10px_30px_-20px_hsl(0_0%_0%/0.6)] backdrop-blur">
+        <div className="mx-auto flex max-w-md items-stretch justify-between gap-0.5 rounded-2xl border border-border bg-card/95 px-1.5 py-1 shadow-[0_-12px_40px_-12px_hsl(0_0%_0%/0.55)] backdrop-blur">
           {items.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               href={to}
               aria-label={label}
               className={cn(
-                'press flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1.5 transition-colors duration-micro ease-matrix',
+                'press flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 transition-colors duration-micro ease-matrix',
                 isActive(to)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'

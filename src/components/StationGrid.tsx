@@ -44,7 +44,7 @@ export function StationGrid({ regionId }: StationGridProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-2"
+      className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
     >
       {stations.map((station, index) => (
         <StationCard key={station.id} station={station} index={index} />
