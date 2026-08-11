@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 export interface Episode {
@@ -19,17 +19,49 @@ export interface Feed {
   episodes: Episode[];
 }
 
+/**
+ * Client-side RSS fallback used when the Supabase edge function is unavailable.
+ * rss2json normalizes RSS/Atom and is CORS-friendly from the browser.
+ */
+async function fetchRssViaService(feedUrl: string): Promise<Feed> {
+  const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`);
+  if (!res.ok) throw new Error(`Feed fetch failed (${res.status})`);
+  const json = await res.json();
+  if (json.status !== 'ok') throw new Error(json.message || 'Feed could not be parsed');
+  const items: any[] = json.items ?? [];
+  return {
+    title: json.feed?.title ?? '',
+    description: json.feed?.description ?? '',
+    image: json.feed?.image ?? null,
+    episodes: items
+      .map((item) => ({
+        guid: String(item.guid ?? item.link ?? item.title),
+        title: item.title ?? '',
+        pubDate: item.pubDate ?? '',
+        duration: item['itunes:duration'] ?? item.duration ?? '',
+        description: item.description ?? '',
+        audioUrl: item.enclosure?.link ?? item.link ?? '',
+      }))
+      .filter((ep) => ep.audioUrl),
+  };
+}
+
 export function useFeed(feedUrl: string | null) {
   return useQuery({
     queryKey: ['podcast-feed', feedUrl],
     enabled: !!feedUrl,
     staleTime: 10 * 60 * 1000,
     queryFn: async (): Promise<Feed> => {
-      const { data, error } = await supabase.functions.invoke('parse-rss', {
-        body: { url: feedUrl },
-      });
-      if (error) throw error;
-      return data as Feed;
+      if (!feedUrl) throw new Error('No feed URL');
+      const supabase = getSupabase();
+      if (supabase) {
+        const { data, error } = await supabase.functions.invoke('parse-rss', {
+          body: { url: feedUrl },
+        });
+        if (error) throw error;
+        return data as Feed;
+      }
+      return fetchRssViaService(feedUrl);
     },
   });
 }
@@ -47,7 +79,8 @@ export function useSubscriptions() {
   const [loading, setLoading] = useState(false);
 
   const refresh = async () => {
-    if (!user) { setSubs([]); return; }
+    const supabase = getSupabase();
+    if (!user || !supabase) { setSubs([]); return; }
     setLoading(true);
     const { data } = await supabase
       .from('podcast_subscriptions')
@@ -61,7 +94,8 @@ export function useSubscriptions() {
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [user?.id]);
 
   const subscribe = async (feed_url: string, title: string, image_url: string | null) => {
-    if (!user) return;
+    const supabase = getSupabase();
+    if (!user || !supabase) return;
     await supabase.from('podcast_subscriptions').upsert(
       { user_id: user.id, feed_url, title, image_url },
       { onConflict: 'user_id,feed_url' }
@@ -70,7 +104,8 @@ export function useSubscriptions() {
   };
 
   const unsubscribe = async (feed_url: string) => {
-    if (!user) return;
+    const supabase = getSupabase();
+    if (!user || !supabase) return;
     await supabase.from('podcast_subscriptions')
       .delete().eq('user_id', user.id).eq('feed_url', feed_url);
     refresh();
@@ -86,7 +121,8 @@ export function useEpisodeProgress(feedUrl: string) {
   const [progress, setProgress] = useState<Record<string, { position: number; completed: boolean }>>({});
 
   useEffect(() => {
-    if (!user || !feedUrl) return;
+    const supabase = getSupabase();
+    if (!user || !supabase || !feedUrl) return;
     supabase
       .from('podcast_episode_progress')
       .select('episode_guid, position_seconds, completed')
@@ -102,7 +138,8 @@ export function useEpisodeProgress(feedUrl: string) {
   }, [user?.id, feedUrl]);
 
   const save = async (episode_guid: string, position: number, completed = false) => {
-    if (!user) return;
+    const supabase = getSupabase();
+    if (!user || !supabase) return;
     await supabase.from('podcast_episode_progress').upsert(
       {
         user_id: user.id,

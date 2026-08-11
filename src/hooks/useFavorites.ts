@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RadioStation } from '@/types/radio';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 const LOCAL_KEY = 'fm-oldschool-favorites';
@@ -18,7 +18,8 @@ export function useFavorites() {
     let cancelled = false;
 
     async function load() {
-      if (user) {
+      const supabase = getSupabase();
+      if (user && supabase) {
         // Migrate local favorites once
         const localRaw = localStorage.getItem(LOCAL_KEY);
         if (localRaw) {
@@ -81,7 +82,8 @@ export function useFavorites() {
         if (!user) persistLocal(updated);
         return updated;
       });
-      if (user) {
+      const supabase = getSupabase();
+      if (user && supabase) {
         await supabase.from('favorites').upsert(
           {
             user_id: user.id,
@@ -102,7 +104,8 @@ export function useFavorites() {
         if (!user) persistLocal(updated);
         return updated;
       });
-      if (user) {
+      const supabase = getSupabase();
+      if (user && supabase) {
         await supabase
           .from('favorites')
           .delete()

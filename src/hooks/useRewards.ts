@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabase, hasSupabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export interface Achievement {
@@ -30,8 +30,10 @@ export function useRewards() {
 
   const ledger = useQuery({
     queryKey: ['rewards', 'ledger', uid],
-    enabled: !!uid,
+    enabled: !!uid && hasSupabase,
     queryFn: async () => {
+      const supabase = getSupabase();
+      if (!supabase) return [] as LedgerEntry[];
       const { data, error } = await supabase
         .from('points_ledger')
         .select('id, delta, reason, created_at, metadata')
@@ -45,8 +47,10 @@ export function useRewards() {
 
   const streak = useQuery({
     queryKey: ['rewards', 'streak', uid],
-    enabled: !!uid,
+    enabled: !!uid && hasSupabase,
     queryFn: async () => {
+      const supabase = getSupabase();
+      if (!supabase) return { current_streak: 0, longest_streak: 0, last_listened_date: null } as Streak;
       const { data } = await supabase
         .from('streaks')
         .select('current_streak, longest_streak, last_listened_date')
@@ -58,8 +62,10 @@ export function useRewards() {
 
   const achievements = useQuery({
     queryKey: ['rewards', 'achievements', uid],
-    enabled: !!uid,
+    enabled: !!uid && hasSupabase,
     queryFn: async () => {
+      const supabase = getSupabase();
+      if (!supabase) return [] as Achievement[];
       const { data } = await supabase
         .from('achievements')
         .select('id, code, title, description, earned_at')

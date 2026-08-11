@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { RadioStation } from '@/types/radio';
 
@@ -14,13 +14,14 @@ export function useListeningHistory(station: RadioStation | null, isPlaying: boo
   const startRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!user || !station) return;
+    const supabase = getSupabase();
+    if (!supabase || !user || !station) return;
     const currentUser = user;
     const currentStation = station;
 
     let cancelled = false;
 
-    async function start() {
+    const start = async () => {
       startRef.current = Date.now();
       const { data } = await supabase
         .from('listening_history')

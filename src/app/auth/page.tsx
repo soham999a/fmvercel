@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabase, hasSupabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,11 @@ export default function Auth() {
 
     setBusy(true);
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        toast.error('Accounts are unavailable — running in local mode');
+        return;
+      }
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
           email: emailR.data,
@@ -65,6 +70,10 @@ export default function Auth() {
   };
 
   const google = async () => {
+    if (!hasSupabase) {
+      toast.error('Cloud sign-in is unavailable — running in local mode');
+      return;
+    }
     setBusy(true);
     const result = await lovable.auth.signInWithOAuth('google', {
       redirect_uri: window.location.origin,
@@ -93,6 +102,14 @@ export default function Auth() {
             Sync favorites and listening history across devices.
           </p>
           <div className="rule-gold mt-4 w-16" />
+
+          {!hasSupabase && (
+            <div className="mt-6 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+              Cloud accounts are unavailable right now — running in{' '}
+              <span className="text-primary">local mode</span>. Favorites and history stay on this
+              device.
+            </div>
+          )}
 
           <form onSubmit={submit} className="mt-8 space-y-4">
             {mode === 'signup' && (
@@ -130,7 +147,7 @@ export default function Auth() {
               />
             </div>
 
-            <Button type="submit" disabled={busy} className="w-full">
+            <Button type="submit" disabled={busy || !hasSupabase} className="w-full">
               {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
             </Button>
           </form>
@@ -141,7 +158,7 @@ export default function Auth() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <Button variant="outline" className="w-full" onClick={google} disabled={busy}>
+          <Button variant="outline" className="w-full" onClick={google} disabled={busy || !hasSupabase}>
             Continue with Google
           </Button>
 
