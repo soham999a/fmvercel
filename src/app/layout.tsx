@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   authors: [{ name: "Hertz" }],
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/app-icon.png",
+    apple: "/app-icon.png",
   },
   appleWebApp: {
     capable: true,

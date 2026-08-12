@@ -8,6 +8,7 @@
   "theme_color": "#B8924A",
   "orientation": "portrait",
   "icons": [
-    { "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" }
+    { "src": "/app-icon.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
