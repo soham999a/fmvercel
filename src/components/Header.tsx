@@ -13,28 +13,18 @@ export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 md:pl-24 md:pr-8">
-        <Link href="/" className="press flex items-center gap-3">
-          <div className="rounded-md border border-primary/80 p-0.5 shadow-[0_0_12px_rgba(184,146,74,0.25)]">
+        <Link href="/" className="press flex items-center">
+          <div className="overflow-hidden rounded-md border border-primary/80 p-0.5 shadow-[0_0_12px_rgba(184,146,74,0.25)]">
             <img
-              src="/app-icon.png"
+              src="/hertz-logo-dark.png"
               alt="Hertz — Your Home of Radio"
-              width={36}
-              height={36}
               className="hidden h-9 w-auto object-contain dark:block"
             />
             <img
-              src="/app-icon-light.png"
+              src="/hertz-logo-light.png"
               alt="Hertz — Your Home of Radio"
-              width={36}
-              height={36}
               className="block h-9 w-auto object-contain dark:hidden"
             />
-          </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-[15px] font-semibold tracking-tight text-foreground">Hertz</span>
-            <span className="type-mono-label mt-0.5 hidden text-primary/80 min-[400px]:block" style={{ fontSize: 9 }}>
-              Your Home of Radio
-            </span>
           </div>
         </Link>
 
