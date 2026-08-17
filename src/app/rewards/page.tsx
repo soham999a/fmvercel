@@ -1,38 +1,57 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { Award, Flame, Trophy, Sparkles, Gift, Lock } from 'lucide-react';
+import { Award, Flame, Trophy, Sparkles, Gift, Lock, Radio, Clock, Zap, TrendingUp, Play, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { FloatingNav } from '@/components/FloatingNav';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { useAuth } from '@/hooks/useAuth';
 import { useRewards } from '@/hooks/useRewards';
+import { usePlayer } from '@/contexts/PlayerContext';
 
 export default function Rewards() {
   const { user, loading } = useAuth();
   const r = useRewards();
+  const player = usePlayer();
+  const isListening = player.isPlaying && !!player.currentStation;
 
   return (
     <div className="min-h-dvh bg-background pb-32 md:pb-24">
       <Header />
-      <main className="mx-auto max-w-6xl px-4 pt-6 md:pl-24 md:pr-8">
+      <main className="mx-auto max-w-4xl px-4 pt-6 md:pl-24 md:pr-8">
+        {/* Hero */}
         <div>
-          <span className="type-mono-label text-muted-foreground">System · 04 · Rewards</span>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            <span className="type-mono-label text-primary">Rewards · Live</span>
+          </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-            Wallet
+            Earn While You Listen
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Earn points for every minute of verified listening. Build streaks. Unlock achievements.
+          <p className="mt-1 max-w-lg text-sm text-muted-foreground">
+            Every minute of listening earns you 1 point. Build daily streaks, unlock achievements, and climb levels.
           </p>
           <div className="rule-gold mt-4 max-w-[160px]" />
         </div>
 
         {!loading && !user && (
-          <div className="mt-8 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
-            <Lock className="mb-2 h-5 w-5 text-primary" />
-            <Link href="/auth" className="text-primary underline underline-offset-2">Sign in</Link> to
-            track your listening rewards and streaks.
+          <div className="mt-8 rounded-2xl border border-primary/30 bg-card p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <Lock className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Sign in to start earning</p>
+                <p className="text-xs text-muted-foreground">Create an account to track your rewards and streaks across devices.</p>
+              </div>
+            </div>
+            <Link
+              href="/auth"
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Sign in / Create account
+            </Link>
           </div>
         )}
 
@@ -41,69 +60,174 @@ export default function Rewards() {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3"
+            className="mt-6 space-y-6"
           >
-            {/* Progress ring */}
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 md:col-span-1">
-              <div className="matrix-grid absolute inset-0 opacity-40" />
-              <div className="relative flex flex-col items-center">
-                <ProgressRing value={r.progressInLevel} max={100} />
-                <div className="mt-4 text-center">
-                  <div className="type-mono-label text-muted-foreground">Level {r.level}</div>
-                  <div className="mt-1 text-3xl font-semibold tabular text-foreground">
-                    {r.totalPoints}<span className="ml-1 text-sm text-muted-foreground">pts</span>
+            {/* Live listening banner */}
+            {isListening && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-4"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <Radio className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="live-dot" />
+                    <span className="type-mono-label text-primary">Earning points now</span>
                   </div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {100 - r.progressInLevel} pts to Level {r.level + 1}
+                  <p className="mt-0.5 truncate text-sm font-medium text-foreground">
+                    {player.currentStation?.name}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="type-mono-metric text-lg font-semibold text-primary">+1</div>
+                  <div className="type-mono-label text-muted-foreground">per min</div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* How it works */}
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <span className="type-mono-label text-muted-foreground">How it works</span>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Step
+                  icon={<Play className="h-4 w-4" />}
+                  number="01"
+                  title="Play a station"
+                  desc="Pick any station from the home screen or search"
+                />
+                <Step
+                  icon={<Clock className="h-4 w-4" />}
+                  number="02"
+                  title="Listen for 1+ min"
+                  desc="Points are awarded every minute you stay tuned"
+                />
+                <Step
+                  icon={<Zap className="h-4 w-4" />}
+                  number="03"
+                  title="Earn & level up"
+                  desc="1 point per minute. Every 100 pts = new level"
+                />
+              </div>
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {/* Level + Points */}
+              <div className="relative col-span-2 overflow-hidden rounded-2xl border border-border bg-card p-5 md:col-span-2">
+                <div className="matrix-grid absolute inset-0 opacity-40" />
+                <div className="relative flex items-center gap-5">
+                  <ProgressRing value={r.progressInLevel} max={100} />
+                  <div>
+                    <div className="type-mono-label text-muted-foreground">Level {r.level}</div>
+                    <div className="mt-1 text-3xl font-semibold tabular text-foreground">
+                      {r.totalPoints}<span className="ml-1 text-sm font-normal text-muted-foreground">pts</span>
+                    </div>
+                    <div className="mt-2 h-2 w-32 overflow-hidden rounded-full bg-secondary">
+                      <motion.div
+                        className="h-full rounded-full bg-primary"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${r.progressInLevel}%` }}
+                        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                      />
+                    </div>
+                    <div className="mt-1.5 text-[11px] text-muted-foreground">
+                      {100 - r.progressInLevel > 0
+                        ? `${100 - r.progressInLevel} pts to Level ${r.level + 1}`
+                        : `Level ${r.level + 1} unlocked!`}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Streak */}
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10">
+                    <Flame className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <span className="type-mono-label text-muted-foreground">Streak</span>
+                </div>
+                <div className="mt-3">
+                  <div className="type-mono-metric text-2xl font-semibold text-foreground">
+                    {r.streak.current_streak}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {r.streak.current_streak === 1 ? 'day' : 'days'} · best: {r.streak.longest_streak}
+                  </div>
+                </div>
+              </div>
+
+              {/* Achievements */}
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-500/10">
+                    <Trophy className="h-4 w-4 text-yellow-500" />
+                  </div>
+                  <span className="type-mono-label text-muted-foreground">Badges</span>
+                </div>
+                <div className="mt-3">
+                  <div className="type-mono-metric text-2xl font-semibold text-foreground">
+                    {r.achievements.length}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    of {ALL_ACHIEVEMENTS.length} unlocked
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Streak */}
-            <StatCard
-              icon={<Flame className="h-4 w-4" />}
-              label="Current streak"
-              value={`${r.streak.current_streak} ${r.streak.current_streak === 1 ? 'day' : 'days'}`}
-              hint={`Longest · ${r.streak.longest_streak}`}
-            />
-            {/* Achievements count */}
-            <StatCard
-              icon={<Trophy className="h-4 w-4" />}
-              label="Achievements"
-              value={String(r.achievements.length)}
-              hint="Milestones earned"
-            />
-
-            {/* Achievements list */}
-            <section className="md:col-span-3">
-              <div className="mt-4 flex items-baseline justify-between">
+            {/* Achievements */}
+            <section>
+              <div className="flex items-baseline justify-between">
                 <div>
                   <span className="type-mono-label text-muted-foreground">Milestones</span>
                   <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">
                     Achievements
                   </h2>
                 </div>
-                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="type-mono-label text-primary">
+                  {r.achievements.length}/{ALL_ACHIEVEMENTS.length}
+                </span>
               </div>
-              <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {ALL_ACHIEVEMENTS.map((a) => {
                   const earned = r.achievements.find((x) => x.code === a.code);
                   return (
                     <div
                       key={a.code}
-                      className={`card-lift rounded-xl border p-4 ${
-                        earned ? 'border-primary/50 bg-primary/5' : 'border-border bg-card opacity-60'
+                      className={`card-lift relative overflow-hidden rounded-xl border p-4 ${
+                        earned
+                          ? 'border-primary/50 bg-primary/5'
+                          : 'border-border bg-card'
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <Award className={`h-4 w-4 ${earned ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <div className="type-mono-label text-muted-foreground">{a.code}</div>
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                            earned ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'
+                          }`}
+                        >
+                          <Award className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground">{a.title}</h3>
+                          <div className="type-mono-label text-muted-foreground">{a.points} pts</div>
+                        </div>
                       </div>
-                      <h3 className="mt-1 text-sm font-semibold text-foreground">{a.title}</h3>
-                      <p className="text-xs text-muted-foreground">{a.description}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">{a.description}</p>
                       {earned && (
-                        <div className="mt-2 text-[11px] text-primary">Earned</div>
+                        <div className="mt-2 flex items-center gap-1">
+                          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          <span className="type-mono-label text-primary">
+                            Earned {new Date(earned.earned_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                      {!earned && (
+                        <div className="mt-2 type-mono-label text-muted-foreground/60">Locked</div>
                       )}
                     </div>
                   );
@@ -111,32 +235,73 @@ export default function Rewards() {
               </div>
             </section>
 
-            {/* Ledger */}
-            <section className="md:col-span-3">
-              <div className="mt-6">
-                <span className="type-mono-label text-muted-foreground">Ledger · last 50</span>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">
-                  Activity
-                </h2>
+            {/* Activity Ledger */}
+            <section>
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <span className="type-mono-label text-muted-foreground">Activity</span>
+                  <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">
+                    Recent Earnings
+                  </h2>
+                </div>
+                {r.ledger.length > 0 && (
+                  <span className="type-mono-label text-muted-foreground">
+                    {r.ledger.length} entries
+                  </span>
+                )}
               </div>
               <div className="mt-3 rounded-2xl border border-border bg-card">
                 {r.ledger.length === 0 ? (
-                  <p className="p-6 text-sm text-muted-foreground">
-                    Start playing a station — points appear here as you listen.
-                  </p>
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+                      <Play className="h-6 w-6 text-muted-foreground/60" />
+                    </div>
+                    <h3 className="mt-3 text-sm font-medium text-foreground">No points yet</h3>
+                    <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                      Play any radio station for at least 1 minute and your first points will appear here automatically.
+                    </p>
+                    <Link
+                      href="/"
+                      className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                    >
+                      <Play className="h-3 w-3" />
+                      Start listening
+                    </Link>
+                  </div>
                 ) : (
                   <ul className="divide-y divide-border">
                     {r.ledger.map((row) => (
-                      <li key={row.id} className="flex items-center justify-between p-3 text-sm">
-                        <div>
-                          <div className="text-foreground">
-                            {row.metadata?.station ?? 'Listening'}
+                      <li key={row.id} className="flex items-center gap-3 px-4 py-3">
+                        <div
+                          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${
+                            row.reason === 'century_club'
+                              ? 'bg-yellow-500/10 text-yellow-500'
+                              : 'bg-primary/10 text-primary'
+                          }`}
+                        >
+                          {row.reason === 'century_club' ? (
+                            <Trophy className="h-4 w-4" />
+                          ) : (
+                            <Radio className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-foreground">
+                            {row.reason === 'century_club'
+                              ? 'Century Club Bonus'
+                              : row.metadata?.station ?? 'Listening'}
                           </div>
                           <div className="text-[11px] text-muted-foreground">
+                            {row.reason === 'century_club'
+                              ? 'Achievement unlocked'
+                              : `${row.metadata?.minutes ?? '?'} min listened`}
+                            {' · '}
                             {new Date(row.created_at).toLocaleString()}
                           </div>
                         </div>
-                        <div className="type-mono-metric text-primary">+{row.delta}</div>
+                        <div className="type-mono-metric text-sm font-semibold text-primary">
+                          +{row.delta}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -144,18 +309,28 @@ export default function Rewards() {
               </div>
             </section>
 
-            {/* Redemption placeholder */}
-            <section className="md:col-span-3">
-              <div className="mt-6 rounded-2xl border border-dashed border-border bg-card p-5">
-                <div className="flex items-center gap-2">
-                  <Gift className="h-4 w-4 text-primary" />
-                  <span className="type-mono-label text-muted-foreground">Redeem · Coming soon</span>
+            {/* Levels guide */}
+            <section>
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <span className="type-mono-label text-muted-foreground">Level guide</span>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {LEVELS.map((l) => (
+                    <div
+                      key={l.level}
+                      className={`rounded-xl border p-3 text-center ${
+                        r.level >= l.level
+                          ? 'border-primary/50 bg-primary/5'
+                          : 'border-border bg-card'
+                      }`}
+                    >
+                      <div className="type-mono-metric text-lg font-semibold text-foreground">
+                        Lv.{l.level}
+                      </div>
+                      <div className="type-mono-label text-muted-foreground">{l.points} pts</div>
+                      <div className="mt-1 text-[10px] text-muted-foreground/70">{l.title}</div>
+                    </div>
+                  ))}
                 </div>
-                <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-                  Gift-card redemption unlocks at <span className="text-foreground">1,000 pts</span>.
-                  Live fulfilment requires a partner integration — Tremendous or Amazon
-                  Incentives — and will be enabled in a later drop.
-                </p>
               </div>
             </section>
           </motion.div>
@@ -169,53 +344,68 @@ export default function Rewards() {
 }
 
 const ALL_ACHIEVEMENTS = [
-  { code: 'first_tune',   title: 'First Tune',   description: 'Played your first station' },
-  { code: 'century_club', title: 'Century Club', description: 'Earned 100 points' },
-  { code: 'week_warrior', title: 'Week Warrior', description: '7-day listening streak' },
+  { code: 'first_tune', title: 'First Tune', description: 'Play your very first radio station', points: 1 },
+  { code: 'century_club', title: 'Century Club', description: 'Earn 100 total points from listening', points: 100 },
+  { code: 'week_warrior', title: 'Week Warrior', description: 'Maintain a 7-day listening streak', points: 50 },
 ];
 
-function StatCard({
-  icon, label, value, hint,
-}: { icon: React.ReactNode; label: string; value: string; hint?: string }) {
+const LEVELS = [
+  { level: 1, points: 0, title: 'Listener' },
+  { level: 5, points: 400, title: 'Regular' },
+  { level: 10, points: 900, title: 'Enthusiast' },
+  { level: 20, points: 1900, title: 'Radio Legend' },
+];
+
+function Step({
+  icon, number, title, desc,
+}: { icon: React.ReactNode; number: string; title: string; desc: string }) {
   return (
-    <div className="card-lift rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-center gap-2 text-primary">
+    <div className="flex items-start gap-3">
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-primary">
         {icon}
-        <span className="type-mono-label text-muted-foreground">{label}</span>
       </div>
-      <div className="mt-2 type-mono-metric text-3xl font-semibold text-foreground">{value}</div>
-      {hint && <div className="mt-1 text-[11px] text-muted-foreground">{hint}</div>}
+      <div>
+        <div className="type-mono-label text-muted-foreground">Step {number}</div>
+        <h3 className="mt-0.5 text-sm font-semibold text-foreground">{title}</h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
+      </div>
     </div>
   );
 }
 
 function ProgressRing({ value, max }: { value: number; max: number }) {
-  const size = 140;
-  const stroke = 8;
+  const size = 88;
+  const stroke = 6;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const pct = Math.min(1, Math.max(0, value / max));
   return (
-    <svg width={size} height={size} className="rotate-[-90deg]">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="hsl(var(--border))"
-        strokeWidth={stroke}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="hsl(var(--primary))"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={`${c * pct} ${c}`}
-        style={{ transition: 'stroke-dasharray 400ms cubic-bezier(0.4,0,0.2,1)' }}
-      />
-    </svg>
+    <div className="relative flex-shrink-0">
+      <svg width={size} height={size} className="rotate-[-90deg]">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="hsl(var(--secondary))"
+          strokeWidth={stroke}
+        />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          initial={{ strokeDasharray: `0 ${c}` }}
+          animate={{ strokeDasharray: `${c * pct} ${c}` }}
+          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="type-mono-metric text-lg font-semibold text-foreground">{value}%</span>
+      </div>
+    </div>
   );
 }

@@ -1,6 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
-import { getSupabase, hasSupabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from 'firebase/firestore';
 
 export interface Achievement {
   id: string;
@@ -26,68 +32,104 @@ export interface Streak {
 
 export function useRewards() {
   const { user } = useAuth();
-  const uid = user?.id;
+  const uid = user?.uid;
 
-  const ledger = useQuery({
-    queryKey: ['rewards', 'ledger', uid],
-    enabled: !!uid && hasSupabase,
-    queryFn: async () => {
-      const supabase = getSupabase();
-      if (!supabase) return [] as LedgerEntry[];
-      const { data, error } = await supabase
-        .from('points_ledger')
-        .select('id, delta, reason, created_at, metadata')
-        .eq('user_id', uid!)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return (data ?? []) as LedgerEntry[];
-    },
-  });
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [streak, setStreak] = useState<Streak>({ current_streak: 0, longest_streak: 0, last_listened_date: null });
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const streak = useQuery({
-    queryKey: ['rewards', 'streak', uid],
-    enabled: !!uid && hasSupabase,
-    queryFn: async () => {
-      const supabase = getSupabase();
-      if (!supabase) return { current_streak: 0, longest_streak: 0, last_listened_date: null } as Streak;
-      const { data } = await supabase
-        .from('streaks')
-        .select('current_streak, longest_streak, last_listened_date')
-        .eq('user_id', uid!)
-        .maybeSingle();
-      return (data ?? { current_streak: 0, longest_streak: 0, last_listened_date: null }) as Streak;
-    },
-  });
+  // Real-time ledger listener
+  useEffect(() => {
+    if (!uid) { setLedger([]); setIsLoading(false); return; }
+    setIsLoading(true);
 
-  const achievements = useQuery({
-    queryKey: ['rewards', 'achievements', uid],
-    enabled: !!uid && hasSupabase,
-    queryFn: async () => {
-      const supabase = getSupabase();
-      if (!supabase) return [] as Achievement[];
-      const { data } = await supabase
-        .from('achievements')
-        .select('id, code, title, description, earned_at')
-        .eq('user_id', uid!)
-        .order('earned_at', { ascending: false });
-      return (data ?? []) as Achievement[];
-    },
-  });
+    const q = query(collection(db, 'points_ledger'), where('userId', '==', uid));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const entries = snap.docs
+        .map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            delta: data.delta ?? 0,
+            reason: data.reason ?? '',
+            created_at: data.createdAt ?? '',
+            metadata: data.metadata ?? null,
+          };
+        })
+        .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+        .slice(0, 100);
+      setLedger(entries);
+      setIsLoading(false);
+    }, (err) => {
+      console.warn('Ledger listener error:', err);
+      setIsLoading(false);
+    });
 
-  const totalPoints = (ledger.data ?? []).reduce((s, r) => s + r.delta, 0);
+    return () => unsubscribe();
+  }, [uid]);
+
+  // Real-time streak listener
+  useEffect(() => {
+    if (!uid) { setStreak({ current_streak: 0, longest_streak: 0, last_listened_date: null }); return; }
+
+    const q = query(collection(db, 'streaks'), where('userId', '==', uid));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      if (snap.empty) {
+        setStreak({ current_streak: 0, longest_streak: 0, last_listened_date: null });
+      } else {
+        const data = snap.docs[0].data();
+        setStreak({
+          current_streak: data.currentStreak ?? 0,
+          longest_streak: data.longestStreak ?? 0,
+          last_listened_date: data.lastListenedDate ?? null,
+        });
+      }
+    }, (err) => {
+      console.warn('Streak listener error:', err);
+    });
+
+    return () => unsubscribe();
+  }, [uid]);
+
+  // Real-time achievements listener
+  useEffect(() => {
+    if (!uid) { setAchievements([]); return; }
+
+    const q = query(collection(db, 'achievements'), where('userId', '==', uid));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const achs = snap.docs
+        .map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            code: data.code ?? '',
+            title: data.title ?? '',
+            description: data.description ?? null,
+            earned_at: data.earnedAt ?? '',
+          };
+        })
+        .sort((a, b) => (b.earned_at || '').localeCompare(a.earned_at || ''));
+      setAchievements(achs);
+    }, (err) => {
+      console.warn('Achievements listener error:', err);
+    });
+
+    return () => unsubscribe();
+  }, [uid]);
+
+  const totalPoints = ledger.reduce((s, r) => s + r.delta, 0);
   const level = Math.floor(totalPoints / 100) + 1;
-  const nextLevelAt = level * 100;
   const progress = totalPoints - (level - 1) * 100;
 
   return {
-    isLoading: ledger.isLoading || streak.isLoading || achievements.isLoading,
-    ledger: ledger.data ?? [],
-    streak: streak.data ?? { current_streak: 0, longest_streak: 0, last_listened_date: null },
-    achievements: achievements.data ?? [],
+    isLoading,
+    ledger,
+    streak,
+    achievements,
     totalPoints,
     level,
-    nextLevelAt,
+    nextLevelAt: level * 100,
     progressInLevel: progress,
   };
 }

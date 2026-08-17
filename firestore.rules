@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if request is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper: check if the document belongs to the requesting user
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    // ── Favorites ──────────────────────────────────────────────
+    match /favorites/{favId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // ── Listening History ──────────────────────────────────────
+    match /listening_history/{docId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update: if isOwner(resource.data.userId);
+    }
+
+    // ── Points Ledger ──────────────────────────────────────────
+    match /points_ledger/{docId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+    }
+
+    // ── Streaks ────────────────────────────────────────────────
+    match /streaks/{docId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create, update: if isOwner(resource.data.userId);
+    }
+
+    // ── Achievements ───────────────────────────────────────────
+    match /achievements/{docId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+    }
+
+    // ── Podcast Subscriptions ──────────────────────────────────
+    match /podcast_subscriptions/{docId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create, update, delete: if isOwner(resource.data.userId);
+    }
+
+    // ── Podcast Episode Progress ───────────────────────────────
+    match /podcast_episode_progress/{docId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create, update: if isOwner(resource.data.userId);
+    }
+  }
+}

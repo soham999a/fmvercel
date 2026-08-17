@@ -1,73 +1,80 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RadioStation } from '@/types/radio';
-import { getSupabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  writeBatch,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const LOCAL_KEY = 'fm-oldschool-favorites';
 
-/**
- * Favorites hook: uses DB when signed in, localStorage otherwise.
- * On sign-in, migrates any local favorites into the DB (one-shot).
- */
 export function useFavorites() {
   const { user } = useAuth();
   const [favorites, setFavorites] = useState<RadioStation[]>([]);
 
-  // Load favorites (DB when signed in, else localStorage)
   useEffect(() => {
-    let cancelled = false;
+    if (!user) {
+      const stored = localStorage.getItem(LOCAL_KEY);
+      try {
+        setFavorites(stored ? JSON.parse(stored) : []);
+      } catch {
+        setFavorites([]);
+      }
+      return;
+    }
 
-    async function load() {
-      const supabase = getSupabase();
-      if (user && supabase) {
-        // Migrate local favorites once
-        const localRaw = localStorage.getItem(LOCAL_KEY);
-        if (localRaw) {
-          try {
-            const local: RadioStation[] = JSON.parse(localRaw);
-            if (local.length) {
-              await supabase.from('favorites').upsert(
-                local.map((s) => ({
-                  user_id: user.id,
-                  station_id: s.id,
-                  station: s as any,
-                })) as any,
-                { onConflict: 'user_id,station_id' } as any
-              );
-            }
-            localStorage.removeItem(LOCAL_KEY);
-          } catch {
-            /* ignore */
-          }
-        }
+    const q = query(
+      collection(db, 'favorites'),
+      where('userId', '==', user.uid)
+    );
 
-        const { data } = await supabase
-          .from('favorites')
-          .select('station')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs
+        .map((d) => ({
+          station: d.data().station as RadioStation,
+          createdAt: d.data().createdAt as string,
+        }))
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+        .map((item) => item.station);
+      setFavorites(items);
+    }, (err) => {
+      console.warn('Favorites listener error:', err);
+    });
 
-        if (!cancelled) {
-          setFavorites((data ?? []).map((r: any) => r.station as RadioStation));
+    // Migrate local favorites to Firestore once
+    const localRaw = localStorage.getItem(LOCAL_KEY);
+    if (localRaw) {
+      try {
+        const local: RadioStation[] = JSON.parse(localRaw);
+        if (local.length) {
+          const batch = writeBatch(db);
+          local.forEach((s) => {
+            const ref = doc(collection(db, 'favorites'));
+            batch.set(ref, {
+              userId: user.uid,
+              stationId: s.id,
+              station: s,
+              createdAt: new Date().toISOString(),
+            });
+          });
+          batch.commit().then(() => localStorage.removeItem(LOCAL_KEY));
+        } else {
+          localStorage.removeItem(LOCAL_KEY);
         }
-      } else {
-        const stored = localStorage.getItem(LOCAL_KEY);
-        if (stored && !cancelled) {
-          try {
-            setFavorites(JSON.parse(stored));
-          } catch {
-            setFavorites([]);
-          }
-        } else if (!cancelled) {
-          setFavorites([]);
-        }
+      } catch {
+        localStorage.removeItem(LOCAL_KEY);
       }
     }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
+    return () => unsubscribe();
   }, [user]);
 
   const persistLocal = (list: RadioStation[]) => {
@@ -82,16 +89,13 @@ export function useFavorites() {
         if (!user) persistLocal(updated);
         return updated;
       });
-      const supabase = getSupabase();
-      if (user && supabase) {
-        await supabase.from('favorites').upsert(
-          {
-            user_id: user.id,
-            station_id: station.id,
-            station: station as any,
-          },
-          { onConflict: 'user_id,station_id' }
-        );
+      if (user) {
+        await addDoc(collection(db, 'favorites'), {
+          userId: user.uid,
+          stationId: station.id,
+          station,
+          createdAt: new Date().toISOString(),
+        });
       }
     },
     [user]
@@ -104,13 +108,14 @@ export function useFavorites() {
         if (!user) persistLocal(updated);
         return updated;
       });
-      const supabase = getSupabase();
-      if (user && supabase) {
-        await supabase
-          .from('favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('station_id', stationId);
+      if (user) {
+        const q = query(
+          collection(db, 'favorites'),
+          where('userId', '==', user.uid),
+          where('stationId', '==', stationId)
+        );
+        const snap = await getDocs(q);
+        snap.forEach((d) => deleteDoc(d.ref));
       }
     },
     [user]

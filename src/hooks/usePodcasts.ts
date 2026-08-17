@@ -1,7 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { getSupabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  setDoc,
+  doc,
+} from 'firebase/firestore';
 
 export interface Episode {
   guid: string;
@@ -19,10 +29,6 @@ export interface Feed {
   episodes: Episode[];
 }
 
-/**
- * Client-side RSS fallback used when the Supabase edge function is unavailable.
- * rss2json normalizes RSS/Atom and is CORS-friendly from the browser.
- */
 async function fetchRssViaService(feedUrl: string): Promise<Feed> {
   const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`);
   if (!res.ok) throw new Error(`Feed fetch failed (${res.status})`);
@@ -53,14 +59,6 @@ export function useFeed(feedUrl: string | null) {
     staleTime: 10 * 60 * 1000,
     queryFn: async (): Promise<Feed> => {
       if (!feedUrl) throw new Error('No feed URL');
-      const supabase = getSupabase();
-      if (supabase) {
-        const { data, error } = await supabase.functions.invoke('parse-rss', {
-          body: { url: feedUrl },
-        });
-        if (error) throw error;
-        return data as Feed;
-      }
       return fetchRssViaService(feedUrl);
     },
   });
@@ -79,39 +77,51 @@ export function useSubscriptions() {
   const [loading, setLoading] = useState(false);
 
   const refresh = async () => {
-    const supabase = getSupabase();
-    if (!user || !supabase) { setSubs([]); return; }
+    if (!user) { setSubs([]); return; }
     setLoading(true);
-    const { data } = await supabase
-      .from('podcast_subscriptions')
-      .select('id, feed_url, title, image_url')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    setSubs((data ?? []) as Subscription[]);
+    const q = query(
+      collection(db, 'podcast_subscriptions'),
+      where('userId', '==', user.uid)
+    );
+    const snap = await getDocs(q);
+    setSubs(
+      snap.docs.map((d) => ({
+        id: d.id,
+        feed_url: d.data().feedUrl,
+        title: d.data().title,
+        image_url: d.data().imageUrl ?? null,
+      }))
+    );
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [user?.id]);
+  useEffect(() => { refresh(); }, [user?.uid]);
 
-  const subscribe = async (feed_url: string, title: string, image_url: string | null) => {
-    const supabase = getSupabase();
-    if (!user || !supabase) return;
-    await supabase.from('podcast_subscriptions').upsert(
-      { user_id: user.id, feed_url, title, image_url },
-      { onConflict: 'user_id,feed_url' }
+  const subscribe = async (feedUrl: string, title: string, imageUrl: string | null) => {
+    if (!user) return;
+    await addDoc(collection(db, 'podcast_subscriptions'), {
+      userId: user.uid,
+      feedUrl,
+      title,
+      imageUrl,
+      createdAt: new Date().toISOString(),
+    });
+    refresh();
+  };
+
+  const unsubscribe = async (feedUrl: string) => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'podcast_subscriptions'),
+      where('userId', '==', user.uid),
+      where('feedUrl', '==', feedUrl)
     );
+    const snap = await getDocs(q);
+    snap.forEach((d) => deleteDoc(d.ref));
     refresh();
   };
 
-  const unsubscribe = async (feed_url: string) => {
-    const supabase = getSupabase();
-    if (!user || !supabase) return;
-    await supabase.from('podcast_subscriptions')
-      .delete().eq('user_id', user.id).eq('feed_url', feed_url);
-    refresh();
-  };
-
-  const isSubscribed = (feed_url: string) => subs.some(s => s.feed_url === feed_url);
+  const isSubscribed = (feedUrl: string) => subs.some((s) => s.feed_url === feedUrl);
 
   return { subs, loading, subscribe, unsubscribe, isSubscribed, refresh };
 }
@@ -121,36 +131,36 @@ export function useEpisodeProgress(feedUrl: string) {
   const [progress, setProgress] = useState<Record<string, { position: number; completed: boolean }>>({});
 
   useEffect(() => {
-    const supabase = getSupabase();
-    if (!user || !supabase || !feedUrl) return;
-    supabase
-      .from('podcast_episode_progress')
-      .select('episode_guid, position_seconds, completed')
-      .eq('user_id', user.id)
-      .eq('feed_url', feedUrl)
-      .then(({ data }) => {
-        const map: Record<string, { position: number; completed: boolean }> = {};
-        (data ?? []).forEach((r: any) => {
-          map[r.episode_guid] = { position: r.position_seconds, completed: r.completed };
-        });
-        setProgress(map);
+    if (!user || !feedUrl) return;
+    const load = async () => {
+      const q = query(
+        collection(db, 'podcast_episode_progress'),
+        where('userId', '==', user.uid),
+        where('feedUrl', '==', feedUrl)
+      );
+      const snap = await getDocs(q);
+      const map: Record<string, { position: number; completed: boolean }> = {};
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        map[data.episodeGuid] = { position: data.positionSeconds, completed: data.completed };
       });
-  }, [user?.id, feedUrl]);
+      setProgress(map);
+    };
+    load();
+  }, [user?.uid, feedUrl]);
 
-  const save = async (episode_guid: string, position: number, completed = false) => {
-    const supabase = getSupabase();
-    if (!user || !supabase) return;
-    await supabase.from('podcast_episode_progress').upsert(
-      {
-        user_id: user.id,
-        feed_url: feedUrl,
-        episode_guid,
-        position_seconds: Math.floor(position),
-        completed,
-      },
-      { onConflict: 'user_id,episode_guid' }
-    );
-    setProgress(p => ({ ...p, [episode_guid]: { position, completed } }));
+  const save = async (episodeGuid: string, position: number, completed = false) => {
+    if (!user) return;
+    const key = `${user.uid}_${feedUrl}_${episodeGuid}`;
+    await setDoc(doc(db, 'podcast_episode_progress', key), {
+      userId: user.uid,
+      feedUrl,
+      episodeGuid,
+      positionSeconds: Math.floor(position),
+      completed,
+      updatedAt: new Date().toISOString(),
+    });
+    setProgress((p) => ({ ...p, [episodeGuid]: { position, completed } }));
   };
 
   return { progress, save };

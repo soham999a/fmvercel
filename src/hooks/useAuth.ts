@@ -1,39 +1,67 @@
-import { useEffect, useState } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
-import { getSupabase, hasSupabase } from '@/integrations/supabase/client';
+import { useEffect, useState, useCallback } from 'react';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut as firebaseSignOut,
+  updateProfile,
+  type User,
+} from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, googleProvider, storage } from '@/lib/firebase';
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!hasSupabase) {
-      setLoading(false);
-      return;
-    }
-    const supabase = getSupabase()!;
-
-    // Set up listener FIRST
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-    });
-
-    // Then hydrate
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
       setLoading(false);
     });
-
-    return () => sub.subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
-  const signOut = async () => {
-    if (!hasSupabase) return;
-    await getSupabase()!.auth.signOut();
+  const signInWithEmail = async (email: string, password: string) => {
+    return signInWithEmailAndPassword(auth, email, password);
   };
 
-  return { session, user, loading, signOut };
+  const signUpWithEmail = async (email: string, password: string, displayName?: string) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    if (displayName) {
+      await updateProfile(cred.user, { displayName });
+    }
+    return cred;
+  };
+
+  const signInWithGoogle = async () => {
+    return signInWithPopup(auth, googleProvider);
+  };
+
+  const signOut = async () => {
+    return firebaseSignOut(auth);
+  };
+
+  const updateProfilePhoto = useCallback(async (file: File) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error('Not signed in');
+
+    const storageRef = ref(storage, `avatars/${currentUser.uid}/profile.jpg`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    await updateProfile(currentUser, { photoURL: downloadURL });
+
+    setUser({ ...currentUser, photoURL: downloadURL });
+  }, []);
+
+  return {
+    user,
+    loading,
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithGoogle,
+    signOut,
+    updateProfilePhoto,
+  };
 }
